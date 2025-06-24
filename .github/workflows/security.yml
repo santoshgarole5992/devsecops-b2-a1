@@ -1,0 +1,115 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [main, security-pipeline]
+  pull_request:
+    branches: [main, security-pipeline]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays
+
+jobs:
+  static-code-analysis:
+    name: Static Code Analysis (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'python'
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+      - name: Upload CodeQL SARIF report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-report
+          path: codeql-results.sarif
+          if-no-files-found: ignore
+
+  dependency-scanning:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit Python dependencies
+        run: pip-audit -o pip-audit-report.json -f json || true
+      - name: Upload pip-audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+          if-no-files-found: ignore
+
+  secure-code-linting:
+    name: Secure Code Linting (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Bandit
+        run: pip install bandit
+      - name: Run Bandit
+        run: bandit -r src -f json -o bandit-report.json || true
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+          if-no-files-found: ignore
+
+  secret-scanning:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: "detect --report-format json --report-path gitleaks-report.json"
+      - name: Upload Gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore
+
+  docker-image-scanning:
+    name: Docker Image Scanning (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        run: docker build -t my-app:latest .
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.16.0
+        with:
+          image-ref: my-app:latest
+          format: json
+          output: trivy-report.json
+          exit-code: 0 # Don't fail the build, just report
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+          if-no-files-found: ignore 
