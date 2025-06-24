@@ -31,7 +31,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           tags: |
-            lvthillo/python-flask-docker:latest
-            lvthillo/python-flask-docker:${{ github.sha }}
+            santosh5992/devsecops-b2-a1:latest
+            santosh5992/devsecops-b2-a1:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
