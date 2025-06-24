@@ -3,6 +3,8 @@ import socket
 
 app = Flask(__name__)
 
+FAKE_SECRET = "sk_test_FAKESTRIPESECRET1234567890"
+
 
 @app.route("/")
 def index():
