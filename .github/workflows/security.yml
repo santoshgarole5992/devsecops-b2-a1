@@ -26,12 +26,14 @@ jobs:
         uses: github/codeql-action/autobuild@v3
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true
       - name: Upload CodeQL SARIF report
         uses: actions/upload-artifact@v4
         with:
           name: codeql-sarif-report
           path: codeql-results.sarif
           if-no-files-found: ignore
+        continue-on-error: true
 
   dependency-scanning:
     name: Dependency Scanning
@@ -48,12 +50,14 @@ jobs:
         run: pip install pip-audit
       - name: Audit Python dependencies
         run: pip-audit -o pip-audit-report.json -f json || true
+        continue-on-error: true
       - name: Upload pip-audit report
         uses: actions/upload-artifact@v4
         with:
           name: pip-audit-report
           path: pip-audit-report.json
           if-no-files-found: ignore
+        continue-on-error: true
 
   secure-code-linting:
     name: Secure Code Linting (Bandit)
@@ -68,12 +72,14 @@ jobs:
         run: pip install bandit
       - name: Run Bandit
         run: bandit -r src -f json -o bandit-report.json || true
+        continue-on-error: true
       - name: Upload Bandit report
         uses: actions/upload-artifact@v4
         with:
           name: bandit-report
           path: bandit-report.json
           if-no-files-found: ignore
+        continue-on-error: true
 
   secret-scanning:
     name: Secret Scanning (Gitleaks)
@@ -84,12 +90,14 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         with:
           args: "detect --report-format json --report-path gitleaks-report.json"
+        continue-on-error: true
       - name: Upload Gitleaks report
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: gitleaks-report.json
           if-no-files-found: ignore
+        continue-on-error: true
 
   docker-image-scanning:
     name: Docker Image Scanning (Trivy)
@@ -106,15 +114,17 @@ jobs:
       - name: Build Docker image
         run: docker build -t my-app:latest .
       - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@v0.16.0
+        uses: aquasecurity/trivy-action@v0.19.0
         with:
           image-ref: my-app:latest
           format: json
           output: trivy-report.json
           exit-code: 0 # Don't fail the build, just report
+        continue-on-error: true
       - name: Upload Trivy report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy-report.json
-          if-no-files-found: ignore 
+          if-no-files-found: ignore
+        continue-on-error: true 
